@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>m o s s e a t s t e x t</title>
+<style>
+  body {
+    margin: 0;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  canvas {
+    border: 1px solid #000;
+    cursor: crosshair;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas" width="720" height="720"></canvas>
+
+<script>
+/* ===================== SETUP ===================== */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+
+let active = false;
+
+/* ===================== TESTO ===================== */
+
+const TEXT = `
+  April is the cruellest month, breeding 
+Lilacs out of the dead land, mixing
+Memory and desire, stirring
+Dull roots with spring rain.
+Winter kept us warm, covering
+Earth in forgetful snow, feeding
+A little life with dried tubers.
+Summer surprised us, coming over the Starnbergersee
+With a shower of rain; we stopped in the colonnade,
+And went on in sunlight, into the Hofgarten, 
+And drank coffee, and talked for an hour.
+Bin gar keine Russin, stamm’ aus Litauen, echt deutsch.
+And when we were children, staying at the archduke’s,
+My cousin’s, he took me out on a sled,
+And I was frightened. He said, Marie,
+Marie, hold on tight. And down he went.
+In the mountains, there you feel free.
+I read, much of the night, and go south in the winter.
+
+  What are the roots that clutch, what branches grow
+Out of this stony rubbish? Son of man,
+You cannot say, or guess, for you know only
+A heap of broken images, where the sun beats,
+And the dead tree gives no shelter, the cricket no relief,
+And the dry stone no sound of water. Only
+There is shadow under this red rock,
+(Come in under the shadow of this red rock),
+And I will show you something different from either
+Your shadow at morning striding behind you
+Or your shadow at evening rising to meet you;
+I will show you fear in a handful of dust.
+
+                    Frisch weht der Wind
+                    Der-Heimat zu
+                    Mein Irisch Kind,
+                    Wo weilest du?
+
+“You gave me Hyacinths first a year ago;
+“They called me the hyacinth girl.”
+—Yet when we came back, late, from the hyacinth garden,
+Your arms full, and your hair wet, I could not
+Speak, and my eyes failed, I was neither
+Living nor dead, and I knew nothing, 
+Looking into the heart of light, the silence.
+Oed’ und leer das Meer. `.repeat(10);
+
+function drawTextField() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = "#000";
+  ctx.font = "13px Times New Roman";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+
+  const padding = 70;
+  const lineHeight = 5;
+  let x = padding;
+  let y = -padding;
+
+  const words = TEXT.replace(/\n+/g, " ").split(" ");
+
+  words.forEach(word => {
+    const w = ctx.measureText(word + " ").width;
+    if (x + w > W - padding) {
+      x = padding;
+      y += lineHeight;
+    }
+    ctx.fillText(word + " ", x, y);
+    x += w;
+  });
+}
+
+drawTextField();
+
+/* ===================== MAPPA TESTO ===================== */
+
+const baseMap = ctx.getImageData(0, 0, W, H).data;
+
+function textDensity(x, y) {
+  const i = (Math.floor(y) * W + Math.floor(x)) * 4;
+  return baseMap[i] < 300;
+}
+
+/* ===================== MUSCHIO ===================== */
+
+let moss = [];
+let occupied = new Set();
+
+function seed(x, y, n = 450) {
+  for (let i = 0; i < n; i++) {
+    const nx = x + (Math.random() - 0.5) * 35;
+    const ny = y + (Math.random() - 0.5) * 30;
+    if (textDensity(nx, ny)) {
+      moss.push({ x: nx, y: ny });
+    }
+  }
+}
+
+/* ===================== PARAMETRI ===================== */
+
+const GROWTH_PER_FRAME = 800;
+const STEP = 1.5;
+
+/* ===================== CRESCITA ===================== */
+
+function grow() {
+  if (!active || moss.length === 0) return;
+
+  let newborns = [];
+
+  for (let i = 0; i < GROWTH_PER_FRAME; i++) {
+    const p = moss[Math.floor(Math.random() * moss.length)];
+    const a = Math.random() * Math.PI * 2;
+    const nx = p.x + Math.cos(a) * STEP;
+    const ny = p.y + Math.sin(a) * STEP;
+
+    if (nx < 1 || ny < 1 || nx >= W - 1 || ny >= H - 1) continue;
+    if (!textDensity(nx, ny)) continue;
+
+    const key = (nx | 0) + "," + (ny | 0);
+    if (occupied.has(key)) continue;
+
+    occupied.add(key);
+    newborns.push({ x: nx, y: ny });
+  }
+
+  moss.push(...newborns);
+}
+
+/* ===================== NUOVI NUCLEI PERIODICI ===================== */
+
+setInterval(() => {
+  if (!active) return;
+
+  let x, y;
+  let tries = 0;
+  do {
+    x = Math.random() * W;
+    y = Math.random() * H;
+    tries++;
+  } while (!textDensity(x, y) && tries < 2000);
+
+  seed(x, y, 120);
+}, 2000);
+
+/* ===================== RENDER ===================== */
+
+function drawMoss() {
+  ctx.fillStyle = "#ffffff";
+
+  moss.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  /* linee micro casuali più frequenti */
+  if (Math.random() < 0.02 && moss.length > 50) {
+    const p = moss[Math.floor(Math.random() * moss.length)];
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(
+      p.x + (Math.random() - 0.5) * 1,
+      p.y + (Math.random() - 0.5) * 1
+    );
+    ctx.lineWidth = 0.0;
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
+  }
+}
+
+/* ===================== INTERAZIONE ===================== */
+
+canvas.addEventListener("mouseenter", e => {
+  if (active) return;
+  active = true;
+
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  seed(mx, my, 300);
+});
+
+/* ===================== LOOP ===================== */
+
+function animate() {
+  grow();
+  drawMoss();
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
