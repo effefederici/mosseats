@@ -16,7 +16,6 @@ body {
 
 canvas {
   border: 1px solid #000;
-  cursor: crosshair;
   touch-action: none;
 }
 </style>
@@ -87,7 +86,7 @@ Living nor dead, and I knew nothing,
 Looking into the heart of light, the silence.
 Oed’ und leer das Meer. `.repeat(10);
 
-/* ===================== DISEGNO TESTO ===================== */
+/* ===================== TESTO ===================== */
 
 function drawTextField() {
   ctx.fillStyle = "#fff";
@@ -99,9 +98,10 @@ function drawTextField() {
   ctx.textBaseline = "top";
 
   const padding = 70;
-  const lineHeight = 6;   // quasi identico al tuo (5), ma evita collasso
+  const lineHeight = 6;
+
   let x = padding;
-  let y = 0;              // invece di -padding → non perde righe
+  let y = 0;
 
   const words = TEXT.replace(/\n+/g, " ").split(" ");
 
@@ -120,7 +120,7 @@ function drawTextField() {
 
 drawTextField();
 
-/* ===================== MAPPA TESTO (IDENTICA) ===================== */
+/* ===================== MAPPA ===================== */
 
 const baseMap = ctx.getImageData(0, 0, W, H).data;
 
@@ -177,13 +177,12 @@ function grow() {
   moss.push(...newborns);
 }
 
-/* ===================== NUOVI NUCLEI ===================== */
+/* ===================== NUCLEI AUTOMATICI ===================== */
 
 setInterval(() => {
   if (!active) return;
 
-  let x, y;
-  let tries = 0;
+  let x, y, tries = 0;
 
   do {
     x = Math.random() * W;
@@ -206,7 +205,7 @@ function drawMoss() {
   });
 }
 
-/* ===================== INTERAZIONE (UNICO FIX REALE) ===================== */
+/* ===================== ATTIVAZIONE SOLO CLICK ===================== */
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -216,22 +215,13 @@ function getPos(e) {
   };
 }
 
-/* mouse */
-canvas.addEventListener("mouseenter", e => {
-  if (active) return;
-  active = true;
-
-  const p = getPos(e);
-  seed(p.x, p.y, 300);
-});
-
-/* touch + penna (iPad fix) */
 canvas.addEventListener("pointerdown", e => {
-  if (active) return;
+  if (active) return; // una sola attivazione
+
   active = true;
 
   const p = getPos(e);
-  seed(p.x, p.y, 300);
+  seed(p.x, p.y, 600); // attivazione forte iniziale
 });
 
 /* ===================== LOOP ===================== */
