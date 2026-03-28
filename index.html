@@ -17,7 +17,7 @@ body {
 canvas {
   border: 1px solid #000;
   cursor: crosshair;
-  touch-action: none; /* fondamentale per iOS */
+  touch-action: none;
 }
 </style>
 </head>
@@ -41,10 +41,53 @@ let active = false;
 /* ===================== TESTO ===================== */
 
 const TEXT = `
-April is the cruellest month, breeding 
+  April is the cruellest month, breeding 
 Lilacs out of the dead land, mixing
-Memory and desire...
-`.repeat(20);
+Memory and desire, stirring
+Dull roots with spring rain.
+Winter kept us warm, covering
+Earth in forgetful snow, feeding
+A little life with dried tubers.
+Summer surprised us, coming over the Starnbergersee
+With a shower of rain; we stopped in the colonnade,
+And went on in sunlight, into the Hofgarten, 
+And drank coffee, and talked for an hour.
+Bin gar keine Russin, stamm’ aus Litauen, echt deutsch.
+And when we were children, staying at the archduke’s,
+My cousin’s, he took me out on a sled,
+And I was frightened. He said, Marie,
+Marie, hold on tight. And down he went.
+In the mountains, there you feel free.
+I read, much of the night, and go south in the winter.
+
+  What are the roots that clutch, what branches grow
+Out of this stony rubbish? Son of man,
+You cannot say, or guess, for you know only
+A heap of broken images, where the sun beats,
+And the dead tree gives no shelter, the cricket no relief,
+And the dry stone no sound of water. Only
+There is shadow under this red rock,
+(Come in under the shadow of this red rock),
+And I will show you something different from either
+Your shadow at morning striding behind you
+Or your shadow at evening rising to meet you;
+I will show you fear in a handful of dust.
+
+                    Frisch weht der Wind
+                    Der-Heimat zu
+                    Mein Irisch Kind,
+                    Wo weilest du?
+
+“You gave me Hyacinths first a year ago;
+“They called me the hyacinth girl.”
+—Yet when we came back, late, from the hyacinth garden,
+Your arms full, and your hair wet, I could not
+Speak, and my eyes failed, I was neither
+Living nor dead, and I knew nothing, 
+Looking into the heart of light, the silence.
+Oed’ und leer das Meer. `.repeat(10);
+
+/* ===================== DISEGNO TESTO ===================== */
 
 function drawTextField() {
   ctx.fillStyle = "#fff";
@@ -56,14 +99,14 @@ function drawTextField() {
   ctx.textBaseline = "top";
 
   const padding = 70;
-  const lineHeight = 5;
-
+  const lineHeight = 16;   // FIX
   let x = padding;
-  let y = -padding;
+  let y = padding;         // FIX
 
   const words = TEXT.replace(/\n+/g, " ").split(" ");
 
-  words.forEach(word => {
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
     const w = ctx.measureText(word + " ").width;
 
     if (x + w > W - padding) {
@@ -71,9 +114,11 @@ function drawTextField() {
       y += lineHeight;
     }
 
+    if (y > H - padding) break;
+
     ctx.fillText(word + " ", x, y);
     x += w;
-  });
+  }
 }
 
 drawTextField();
@@ -83,8 +128,13 @@ drawTextField();
 const baseMap = ctx.getImageData(0, 0, W, H).data;
 
 function textDensity(x, y) {
-  const i = (Math.floor(y) * W + Math.floor(x)) * 4;
-  return baseMap[i] < 200;
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+
+  if (xi < 0 || yi < 0 || xi >= W || yi >= H) return false;
+
+  const i = (yi * W + xi) * 4;
+  return baseMap[i] < 240;
 }
 
 /* ===================== MUSCHIO ===================== */
@@ -92,9 +142,9 @@ function textDensity(x, y) {
 let moss = [];
 let occupied = new Set();
 
-function seed(x, y, n = 200) {
+function seed(x, y, n = 450) {
   for (let i = 0; i < n; i++) {
-    const nx = x + (Math.random() - 0.5) * 30;
+    const nx = x + (Math.random() - 0.5) * 35;
     const ny = y + (Math.random() - 0.5) * 30;
 
     if (textDensity(nx, ny)) {
@@ -105,8 +155,8 @@ function seed(x, y, n = 200) {
 
 /* ===================== PARAMETRI ===================== */
 
-const GROWTH_PER_FRAME = 600;
-const STEP = 1.4;
+const GROWTH_PER_FRAME = 800;
+const STEP = 1.5;
 
 /* ===================== CRESCITA ===================== */
 
@@ -140,30 +190,32 @@ function grow() {
 setInterval(() => {
   if (!active) return;
 
-  let x, y, tries = 0;
+  let x, y;
+  let tries = 0;
 
   do {
     x = Math.random() * W;
     y = Math.random() * H;
     tries++;
-  } while (!textDensity(x, y) && tries < 1000);
+  } while (!textDensity(x, y) && tries < 2000);
 
-  seed(x, y, 80);
+  seed(x, y, 120);
 }, 2000);
 
 /* ===================== RENDER ===================== */
 
 function drawMoss() {
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = "#ffffff";
 
-  moss.forEach(p => {
+  for (let i = 0; i < moss.length; i++) {
+    const p = moss[i];
     ctx.beginPath();
     ctx.arc(p.x, p.y, 0.8, 0, Math.PI * 2);
     ctx.fill();
-  });
+  }
 }
 
-/* ===================== INTERAZIONE UNIVERSALE ===================== */
+/* ===================== INTERAZIONE (FIX iPad) ===================== */
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -173,28 +225,25 @@ function getPos(e) {
   };
 }
 
-/* attivazione iniziale */
 canvas.addEventListener("pointerdown", e => {
   active = true;
   const p = getPos(e);
-  seed(p.x, p.y, 250);
+  seed(p.x, p.y, 300);
 });
 
-/* crescita continua mentre si muove */
 canvas.addEventListener("pointermove", e => {
-  if (e.pressure === 0 && e.pointerType !== "mouse") return;
+  if (e.pointerType !== "mouse" && e.pressure === 0) return;
 
   active = true;
   const p = getPos(e);
-  seed(p.x, p.y, 40);
+  seed(p.x, p.y, 60);
 });
 
-/* opzionale: anche mouse hover su desktop */
 canvas.addEventListener("pointerenter", e => {
   if (e.pointerType === "mouse") {
-    const p = getPos(e);
     active = true;
-    seed(p.x, p.y, 120);
+    const p = getPos(e);
+    seed(p.x, p.y, 200);
   }
 });
 
@@ -209,5 +258,6 @@ function animate() {
 animate();
 
 </script>
+
 </body>
 </html>
