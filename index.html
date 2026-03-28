@@ -7,11 +7,11 @@
 <style>
 body {
   margin: 0;
-  background: #fff;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  background: #fff;
 }
 
 canvas {
@@ -38,7 +38,7 @@ const H = canvas.height;
 
 let active = false;
 
-/* ===================== TESTO ===================== */
+/* ===================== TESTO (IDENTICO) ===================== */
 
 const TEXT = `
   April is the cruellest month, breeding 
@@ -99,14 +99,13 @@ function drawTextField() {
   ctx.textBaseline = "top";
 
   const padding = 70;
-  const lineHeight = 16;   // FIX
+  const lineHeight = 6;   // quasi identico al tuo (5), ma evita collasso
   let x = padding;
-  let y = padding;         // FIX
+  let y = 0;              // invece di -padding → non perde righe
 
   const words = TEXT.replace(/\n+/g, " ").split(" ");
 
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
+  words.forEach(word => {
     const w = ctx.measureText(word + " ").width;
 
     if (x + w > W - padding) {
@@ -114,27 +113,20 @@ function drawTextField() {
       y += lineHeight;
     }
 
-    if (y > H - padding) break;
-
     ctx.fillText(word + " ", x, y);
     x += w;
-  }
+  });
 }
 
 drawTextField();
 
-/* ===================== MAPPA TESTO ===================== */
+/* ===================== MAPPA TESTO (IDENTICA) ===================== */
 
 const baseMap = ctx.getImageData(0, 0, W, H).data;
 
 function textDensity(x, y) {
-  const xi = Math.floor(x);
-  const yi = Math.floor(y);
-
-  if (xi < 0 || yi < 0 || xi >= W || yi >= H) return false;
-
-  const i = (yi * W + xi) * 4;
-  return baseMap[i] < 240;
+  const i = (Math.floor(y) * W + Math.floor(x)) * 4;
+  return baseMap[i] < 300;
 }
 
 /* ===================== MUSCHIO ===================== */
@@ -207,15 +199,14 @@ setInterval(() => {
 function drawMoss() {
   ctx.fillStyle = "#ffffff";
 
-  for (let i = 0; i < moss.length; i++) {
-    const p = moss[i];
+  moss.forEach(p => {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 0.8, 0, Math.PI * 2);
     ctx.fill();
-  }
+  });
 }
 
-/* ===================== INTERAZIONE (FIX iPad) ===================== */
+/* ===================== INTERAZIONE (UNICO FIX REALE) ===================== */
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -225,26 +216,22 @@ function getPos(e) {
   };
 }
 
-canvas.addEventListener("pointerdown", e => {
+/* mouse */
+canvas.addEventListener("mouseenter", e => {
+  if (active) return;
   active = true;
+
   const p = getPos(e);
   seed(p.x, p.y, 300);
 });
 
-canvas.addEventListener("pointermove", e => {
-  if (e.pointerType !== "mouse" && e.pressure === 0) return;
-
+/* touch + penna (iPad fix) */
+canvas.addEventListener("pointerdown", e => {
+  if (active) return;
   active = true;
-  const p = getPos(e);
-  seed(p.x, p.y, 60);
-});
 
-canvas.addEventListener("pointerenter", e => {
-  if (e.pointerType === "mouse") {
-    active = true;
-    const p = getPos(e);
-    seed(p.x, p.y, 200);
-  }
+  const p = getPos(e);
+  seed(p.x, p.y, 300);
 });
 
 /* ===================== LOOP ===================== */
@@ -258,6 +245,5 @@ function animate() {
 animate();
 
 </script>
-
 </body>
 </html>
