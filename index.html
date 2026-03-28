@@ -145,12 +145,10 @@ function seed(x, y, n = 450) {
   }
 }
 
-/* ===================== PARAMETRI ===================== */
+/* ===================== CRESCITA ===================== */
 
 const GROWTH_PER_FRAME = 800;
 const STEP = 1.5;
-
-/* ===================== CRESCITA ===================== */
 
 function grow() {
   if (!active || moss.length === 0) return;
@@ -177,7 +175,7 @@ function grow() {
   moss.push(...newborns);
 }
 
-/* ===================== NUCLEI AUTOMATICI ===================== */
+/* ===================== NUCLEI ===================== */
 
 setInterval(() => {
   if (!active) return;
@@ -205,24 +203,40 @@ function drawMoss() {
   });
 }
 
-/* ===================== ATTIVAZIONE SOLO CLICK ===================== */
+/* ===================== COORDINATE ROBUSTE ===================== */
 
-function getPos(e) {
+function getPosFromEvent(e) {
   const rect = canvas.getBoundingClientRect();
+
+  if (e.touches && e.touches.length > 0) {
+    return {
+      x: e.touches[0].clientX - rect.left,
+      y: e.touches[0].clientY - rect.top
+    };
+  }
+
   return {
     x: e.clientX - rect.left,
     y: e.clientY - rect.top
   };
 }
 
-canvas.addEventListener("pointerdown", e => {
-  if (active) return; // una sola attivazione
+/* ===================== ATTIVAZIONE ===================== */
+
+function activate(e) {
+  if (active) return;
 
   active = true;
 
-  const p = getPos(e);
-  seed(p.x, p.y, 600); // attivazione forte iniziale
-});
+  const p = getPosFromEvent(e);
+  seed(p.x, p.y, 600);
+}
+
+/* pointer (desktop + molti mobile) */
+canvas.addEventListener("pointerdown", activate);
+
+/* fallback iOS esplicito */
+canvas.addEventListener("touchstart", activate, { passive: false });
 
 /* ===================== LOOP ===================== */
 
